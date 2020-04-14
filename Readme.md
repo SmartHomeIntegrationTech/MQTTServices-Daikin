@@ -1,6 +1,6 @@
 This software allows to discover a Daikin Adapter BRP069A62 in the network and read its endpoints. It will then publish it to an MQTT server according to the homie convention. This software is in its early stage, so please be careful when using it!
 
-##Launching it
+## Launching it
 
 You can launch it with `java -jar daikin-0.0.1.jar` which will give you a few options.
 
@@ -13,7 +13,7 @@ Once all endpoints have been discovered (which may take a minute) the table for 
 
 ![alt text](imgs/SetupUI.png "Screenshot of Setup UI")
 
-##Table columns
+## Table columns
 
 **Pollinterval** allows you to set how often things are read. You can get some of my preferred values by hitting the `Guess polling` button. But please double check if it is what you would expect and let me know if not.
 
