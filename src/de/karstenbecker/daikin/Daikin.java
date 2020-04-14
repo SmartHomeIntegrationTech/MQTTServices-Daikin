@@ -120,7 +120,7 @@ public class Daikin {
     private URI getBaseURL(InetSocketAddress adr) {
         return URI.create("ws://" + adr.getHostString() + ":" + adr.getPort() + "/mca");
     }
-    
+
     private URI getBaseURL(DaikinPollingSettings settings) {
         return URI.create("ws://" + settings.getDaikinIP() + ":" + settings.getDaikinPort() + "/mca");
     }
@@ -357,12 +357,14 @@ public class Daikin {
                 DaikinInformation information = daikin.getInformation(address);
                 System.out.println(address + " " + information);
             }
-            if (cmd.hasOption('w')) {
-                List<String> endPoints = readEndPoints(endPointsURL);
-                for (InetSocketAddress address : addresses) {
-                    daikin.writeDiscoveredProperties(address, endPoints, address.getHostString() + "discovered.json");
-                }
-            }
+            System.exit(0);
+        }
+        if (cmd.hasOption('w')) {
+            List<String> endPoints = readEndPoints(endPointsURL);
+            String ip = cmd.getOptionValue('w');
+            InetSocketAddress address = new InetSocketAddress(ip, 80);
+            System.out.println("Scanning "+ip);
+            daikin.writeDiscoveredProperties(address, endPoints, configFile.getAbsolutePath());
             System.exit(0);
         }
         if (cmd.hasOption('g')) {
@@ -450,20 +452,20 @@ public class Daikin {
                 }
                 pollItems(settings, nextMinutely, nextHourly, nextBiHourly, nextDaily, currentRun);
                 webSocketClient.disconnect();
+                if (currentRun > nextMinutely) {
+                    nextMinutely = nextMinutely + MINUTELY_MS;
+                }
+                if (currentRun > nextHourly) {
+                    nextHourly = nextHourly + HOURLY_MS;
+                }
+                if (currentRun > nextBiHourly) {
+                    nextBiHourly = nextBiHourly + BI_HOURLY_MS;
+                }
+                if (currentRun > nextDaily) {
+                    nextDaily = nextDaily + DAILY_MS;
+                }
             } catch (Exception e) {
                 logger.error("Failed to collect data", e);
-            }
-            if (currentRun > nextMinutely) {
-                nextMinutely = nextMinutely + MINUTELY_MS;
-            }
-            if (currentRun > nextHourly) {
-                nextHourly = nextHourly + HOURLY_MS;
-            }
-            if (currentRun > nextBiHourly) {
-                nextBiHourly = nextBiHourly + BI_HOURLY_MS;
-            }
-            if (currentRun > nextDaily) {
-                nextDaily = nextDaily + DAILY_MS;
             }
             try {
                 Thread.sleep(5000);

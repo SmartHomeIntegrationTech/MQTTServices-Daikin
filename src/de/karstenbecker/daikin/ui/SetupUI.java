@@ -259,7 +259,7 @@ public class SetupUI extends JPanel {
      */
     private static void createAndShowGUI(DaikinPollingSettings settings, List<String> endPoints) {
         // Create and set up the window.
-        frame = new JFrame("SimpleTableDemo");
+        frame = new JFrame("Daikin Adapter to Homie Setup");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         try {
             SetupUI newContentPane = new SetupUI(settings, endPoints);
