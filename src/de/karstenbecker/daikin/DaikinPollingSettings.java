@@ -1,5 +1,8 @@
 package de.karstenbecker.daikin;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -11,8 +14,8 @@ import com.google.gson.GsonBuilder;
 
 public class DaikinPollingSettings {
 	private String homieServer = "tcp://127.0.0.1:1883";
-	private String homieUser = "";
-	private String homiePassword = "";
+	private String homieUser = null;
+	private String homiePassword = null;
 	private String homieDeviceName = "daikin-heatingunit";
 	private String daikinIP;
 	private int daikinPort = 80;
@@ -23,7 +26,11 @@ public class DaikinPollingSettings {
 		this.properties.addAll(properties);
 	}
 
-	public String getHomieServer() {
+	public DaikinPollingSettings() {
+        this(new ArrayList<>());
+    }
+
+    public String getHomieServer() {
 		return homieServer;
 	}
 
@@ -98,6 +105,13 @@ public class DaikinPollingSettings {
 			});
 		}
 		return gson.create().toJson(this);
+	}
+	
+	public static DaikinPollingSettings fromFile(File file) throws IOException {
+		Gson gson = new GsonBuilder().create();
+		String json = Files.readString(file.toPath());
+		DaikinPollingSettings settings = gson.fromJson(json, DaikinPollingSettings.class);
+		return settings;
 	}
 
 }
