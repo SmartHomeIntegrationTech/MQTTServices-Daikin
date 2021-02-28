@@ -24,6 +24,9 @@ public class DaikinPollingSettings {
 	private String daikinIP;
 	private int daikinPort = 80;
 	private List<DaikinProperty> properties = new ArrayList<>();
+  private String influxTopic;
+  private String influxTable="Daikin";
+  private String influxQFN="OpenHab.daikin.Heating";
 
 	public DaikinPollingSettings(Collection<DaikinProperty> properties) {
 		super();
@@ -120,5 +123,21 @@ public class DaikinPollingSettings {
 		DaikinPollingSettings settings = gson.fromJson(json, DaikinPollingSettings.class);
 		return settings;
 	}
+
+  public String getInfluxTopic() {
+    return influxTopic;
+  }
+
+  public void setInfluxTopic(String influxTopic) {
+    this.influxTopic = influxTopic;
+  }
+
+  public String getInfluxTable() {
+    return influxTable;
+  }
+
+  public String getInfluxQFN() {
+    return influxQFN;
+  }
 
 }

@@ -85,9 +85,8 @@ public class Daikin implements PropertySetCallback {
 
   private WebsocketHelper webSocketClient;
   public static final String ITEM_SEP = "/";
-  private static final String QFN = "OpenHab.daikin.Heating";
   private URI url;
-  private Map<String, DaikinProperty> idToProp=new HashMap<>();
+  private Map<String, DaikinProperty> idToProp = new HashMap<>();
 
   public Daikin() throws Exception {
     webSocketClient = new WebsocketHelper();
@@ -403,6 +402,7 @@ public class Daikin implements PropertySetCallback {
     config.setBrokerPassword(settings.getHomiePassword());
     Homie homie = new Homie(config, "de.karstenbecker.daikin", "0.0.1");
     Map<String, Node> nodes = new HashMap<>();
+    url = getBaseURL(settings);
     for (DaikinProperty prop : settings.getProperties()) {
       if (prop.getPollInterval() == PollingInterval.NEVER)
         continue;
@@ -424,12 +424,21 @@ public class Daikin implements PropertySetCallback {
       }
       prop.homieProperty = property;
       if (prop.getPostProcessing() == PostProcessing.CONSUMPTION) {
-        prop.postProcessor = new Consumption(node, prop.getName());
+        synchronized (webSocketClient) {
+          try {
+            if (!webSocketClient.connect(url))
+              logger.error("Could not connect to daikin adpater:" + url);
+            prop.postProcessor = Consumption.doSetup(node, property.getID(), webSocketClient.sendQuery(prop.getPath()+"/la"));
+            webSocketClient.disconnect();
+          } catch (Exception e) {
+            logger.error("Failed to collect data for setup", e);
+          }
+        }
+
       }
     }
     homie.setup();
     waitForHomie(homie);
-    url = getBaseURL(settings);
     synchronized (webSocketClient) {
       try {
         if (!webSocketClient.connect(url))
@@ -460,8 +469,8 @@ public class Daikin implements PropertySetCallback {
             continue;
           }
           String influxString = pollItems(settings, nextMinutely, nextHourly, nextBiHourly, nextDaily, currentRun);
-          if (influxString != null && !influxString.isBlank())
-            homie.publish("sensors/" + QFN + "/influxformat", new MqttMessage(influxString.getBytes()));
+          if (influxString != null && !influxString.isBlank() && settings.getInfluxTopic()!=null)
+            homie.publish(settings.getInfluxTopic(), new MqttMessage(influxString.getBytes()));
           webSocketClient.disconnect();
         }
         if (currentRun > nextMinutely) {
@@ -528,7 +537,7 @@ public class Daikin implements PropertySetCallback {
     }
     if (items.length() == 0)
       return null;
-    return "Daikin,qfn=" + QFN + " " + items.toString() + " " + (System.currentTimeMillis() * 1000000L);
+    return settings.getInfluxTable()+",qfn=" + settings.getInfluxQFN() + " " + items.toString() + " " + (System.currentTimeMillis() * 1000000L);
   }
 
   private String pollItem(DaikinProperty property) {
@@ -542,6 +551,15 @@ public class Daikin implements PropertySetCallback {
     if (code == 2000) {
       JsonElement conValue = JsonHelper.getJsonPath(objQueryResult.get(), "pc", "m2m:cin", "con").get();
       String value = conValue.getAsString().strip();
+      if (property.getPostProcessing() != null) {
+        switch (property.getPostProcessing()) {
+        case CONSUMPTION:
+          ((Consumption) property.postProcessor).updateValues(value, false);
+          break;
+        case NONE:
+          break;
+        }
+      }
       switch (property.getDataType()) {
       case FLOAT:
         BigDecimal bd = new BigDecimal(value);
@@ -566,15 +584,6 @@ public class Daikin implements PropertySetCallback {
       default:
         break;
 
-      }
-      if (property.getPostProcessing() != null) {
-        switch (property.getPostProcessing()) {
-        case CONSUMPTION:
-          ((Consumption) property.postProcessor).updateValues(value, false);
-          break;
-        case NONE:
-          break;
-        }
       }
     } else {
       logger.warn("Response code was not 2000 for item:" + property.getName() + " code was:" + code);
