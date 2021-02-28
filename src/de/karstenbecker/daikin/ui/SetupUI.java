@@ -40,6 +40,7 @@ import de.karstenbecker.daikin.Daikin;
 import de.karstenbecker.daikin.DaikinPollingSettings;
 import de.karstenbecker.daikin.DaikinProperty;
 import de.karstenbecker.daikin.DaikinProperty.PollingInterval;
+import de.karstenbecker.daikin.DaikinProperty.PostProcessing;
 
 public class SetupUI extends JPanel {
     private static final int GAP = 8;
@@ -62,7 +63,7 @@ public class SetupUI extends JPanel {
         this.settings = settings;
         this.endPoints=endPoints;
         model = new BeanPropertyModel<DaikinProperty>(DaikinProperty.class, settings.getProperties(), "pollInterval",
-                "name", "unit", "format", "dataType", "value");
+                "name", "unit", "format", "dataType", "value", "postProcessing");
         final JTable table = new JTable(model);
         table.setPreferredScrollableViewportSize(new Dimension(500, 70));
         table.setFillsViewportHeight(true);
@@ -243,6 +244,7 @@ public class SetupUI extends JPanel {
             }
             if (name.contains("consumption")) {
                 p.setPollInterval(PollingInterval.BI_HOURLY);
+                p.setPostProcessing(PostProcessing.CONSUMPTION);
                 model.setDirty(true);
                 continue;
             }

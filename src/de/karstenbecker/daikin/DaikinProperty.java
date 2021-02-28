@@ -10,6 +10,10 @@ public class DaikinProperty implements Comparable<DaikinProperty> {
     public static enum PollingInterval {
         NEVER, ONCE, DAILY, BI_HOURLY, HOURLY, MINUTELY;
     }
+    
+    public static enum PostProcessing {
+      NONE, CONSUMPTION
+    }
 
     private final String path;
     private final String groupName;
@@ -21,7 +25,9 @@ public class DaikinProperty implements Comparable<DaikinProperty> {
     private String format = "";
     private PollingInterval pollInterval = PollingInterval.HOURLY;
     private DataType dataType = DataType.STRING;
+    private PostProcessing postProcessing = PostProcessing.NONE;
     public transient Property homieProperty;
+    public transient Object postProcessor;
 
     public DaikinProperty(String path, String groupName) {
         this.path = path;
@@ -135,6 +141,14 @@ public class DaikinProperty implements Comparable<DaikinProperty> {
         return String.format(
                 "DaikinProperty [path=%s, name=%s, id=%s, value=%s, settable=%s, retained=%s, unit=%s, format=%s, pollInterval=%s, dataType=%s]",
                 path, name, getId(), value, settable, retained, unit, format, pollInterval, dataType);
+    }
+
+    public PostProcessing getPostProcessing() {
+      return postProcessing;
+    }
+
+    public void setPostProcessing(PostProcessing postProcessing) {
+      this.postProcessing = postProcessing;
     }
 
 }

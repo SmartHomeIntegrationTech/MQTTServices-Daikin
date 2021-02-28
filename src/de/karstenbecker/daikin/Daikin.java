@@ -27,6 +27,7 @@ import org.apache.commons.cli.DefaultParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xbill.DNS.DClass;
@@ -38,6 +39,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 import de.karstenbecker.daikin.DaikinProperty.PollingInterval;
+import de.karstenbecker.daikin.DaikinProperty.PostProcessing;
 import de.karstenbecker.daikin.ui.SetupUI;
 import io.github.dschanoeh.homie_java.Configuration;
 import io.github.dschanoeh.homie_java.Homie;
@@ -82,6 +84,7 @@ public class Daikin {
 
     private WebsocketHelper webSocketClient;
     public static final String ITEM_SEP = "/";
+    private static final String QFN = "OpenHab.daikin.Heating";
 
     public Daikin() throws Exception {
         webSocketClient = new WebsocketHelper();
@@ -363,7 +366,7 @@ public class Daikin {
             List<String> endPoints = readEndPoints(endPointsURL);
             String ip = cmd.getOptionValue('w');
             InetSocketAddress address = new InetSocketAddress(ip, 80);
-            System.out.println("Scanning "+ip);
+            System.out.println("Scanning " + ip);
             daikin.writeDiscoveredProperties(address, endPoints, configFile.getAbsolutePath());
             System.exit(0);
         }
@@ -420,6 +423,9 @@ public class Daikin {
             property.setRetained(prop.getRetained());
             property.setUnit(property.getUnit());
             prop.homieProperty = property;
+            if (prop.getPostProcessing()==PostProcessing.CONSUMPTION) {
+              prop.postProcessor=new Consumption(node, prop.getName());
+            }
         }
         homie.setup();
         waitForHomie(homie);
@@ -450,7 +456,10 @@ public class Daikin {
                     Thread.sleep(30000);
                     continue;
                 }
-                pollItems(settings, nextMinutely, nextHourly, nextBiHourly, nextDaily, currentRun);
+                String influxString = pollItems(settings, nextMinutely, nextHourly, nextBiHourly, nextDaily,
+                        currentRun);
+                if (influxString != null && !influxString.isBlank())
+                    homie.publish("sensors/" + QFN + "/influxformat", new MqttMessage(influxString.getBytes()));
                 webSocketClient.disconnect();
                 if (currentRun > nextMinutely) {
                     nextMinutely = nextMinutely + MINUTELY_MS;
@@ -483,8 +492,9 @@ public class Daikin {
         }
     }
 
-    private void pollItems(DaikinPollingSettings settings, long nextMinutely, long nextHourly, long nextBiHourly,
+    private String pollItems(DaikinPollingSettings settings, long nextMinutely, long nextHourly, long nextBiHourly,
             long nextDaily, long currentRun) {
+        StringJoiner items = new StringJoiner(",");
         for (DaikinProperty prop : settings.getProperties()) {
             long compareAgainst = Long.MAX_VALUE;
             switch (prop.getPollInterval()) {
@@ -506,16 +516,24 @@ public class Daikin {
                 break;
             }
             if (currentRun > compareAgainst) {
-                pollItem(prop);
+                if (prop.getPollInterval() != PollingInterval.MINUTELY)
+                    logger.warn("Checking " + prop);
+                String stringValue = pollItem(prop);
+                if (stringValue != null) {
+                    items.add(prop.getId() + "=" + stringValue);
+                }
             }
         }
+        if (items.length() == 0)
+            return null;
+        return "Daikin,qfn=" + QFN + " " + items.toString() + " " + (System.currentTimeMillis() * 1000000L);
     }
 
-    private void pollItem(DaikinProperty property) {
+    private String pollItem(DaikinProperty property) {
         Optional<JsonObject> objQueryResult = webSocketClient.doQuery(property.getPath() + "/la");
         if (!objQueryResult.isPresent()) {
             logger.warn("failed to read " + property.getPath());
-            return;
+            return null;
         }
         int code = objQueryResult.get().get("rsc").getAsInt();
         logger.debug("Obj:" + property.getName() + " " + code + " " + objQueryResult);
@@ -526,30 +544,47 @@ public class Daikin {
             case FLOAT:
                 BigDecimal bd = new BigDecimal(value);
                 property.homieProperty.send(bd.doubleValue());
-                break;
+                return bd.toPlainString();
             case BOOLEAN:
-                if ("0".contentEquals(value))
+                boolean boolValue = "0".contentEquals(value);
+                if (boolValue)
                     property.homieProperty.send(Boolean.FALSE);
                 else
                     property.homieProperty.send(Boolean.TRUE);
-                break;
+                return boolValue ? "1" : "0";
             case INTEGER:
                 long parseLong = new BigDecimal(value).longValue();
                 property.homieProperty.send(parseLong);
-                break;
+                return Long.toString(parseLong);
             case ENUM:
             case STRING:
-                property.homieProperty.send(value);
-                break;
+                if (!value.equals(""))
+                  property.homieProperty.send(value);
+                return escapeAndQuote(value);
             default:
                 break;
 
             }
+            if (property.getPostProcessing()!=null) {
+              switch (property.getPostProcessing()) {
+              case CONSUMPTION:
+                ((Consumption)property.postProcessor).updateValues(value, false);
+                break;
+              case NONE:
+                break;
+              }
+            }
         } else {
             logger.warn("Response code was not 2000 for item:" + property.getName() + " code was:" + code);
         }
+        return null;
     }
 
+    private static String escapeAndQuote(String value) {
+        String escaped = value.replace("\\", "\\\\").replace("\"","\\\"");
+        return '"'+escaped+'"';
+    }
+    
     public void writeDiscoveredProperties(InetSocketAddress address, List<String> endPoints, String outputFile)
             throws IOException {
         Set<DaikinProperty> properties = discoverProperties(address, endPoints);
