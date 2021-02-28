@@ -2,9 +2,9 @@ This software allows to discover a Daikin Adapter BRP069A62 in the network and r
 
 ## Launching it
 
-You can launch it with `java -jar daikin-0.0.1.jar` which will give you a few options.
+You can launch it with `java -jar daikin-0.0.2.jar` which will give you a few options.
 
-If you don't know your IP address you can run `java -jar daikin-0.0.1.jar -d` and it will discover existing Daikin Adapters through MDNS, or you can just run `java -jar daikin-0.0.1.jar -g` to start a Setup GUI. If you launch the GUI for the first time, it will open a dialog, where you can enter the IP address of the adapter, or hit the discover button and get the first adapter found.
+If you don't know your IP address you can run `java -jar daikin-0.0.2.jar -d` and it will discover existing Daikin Adapters through MDNS, or you can just run `java -jar daikin-0.0.2.jar -g` to start a Setup GUI. If you launch the GUI for the first time, it will open a dialog, where you can enter the IP address of the adapter, or hit the discover button and get the first adapter found.
 
 Once the proper UI opens you can hit the discover button which will try to identify all possible endpoints that can be read from this adapter. For this it will use the UnitProfile endpoint, as well as a text file with some other endpoints that I found in the app.
 *ADVANCED: You can also try your own endpoints with the `-e` option*
@@ -36,12 +36,28 @@ Currently the polling interval is relative to the start time of the polling (`-p
 
 **Value** If you hit discover you get the current value for information, this allows you make a better assessment of the data type or the expected values.
 
+**postProcessing** there is now a functionality that allows to map the contents of consumption to homie endpoints. 
+
+* NONE does nothing
+* CONSUMPTION This parses the json of a consumption string and splits it into sub properties. This enables the presentation of power without having to parse the json. The property: `homie/daikin-heatingunit/domestichotwatertank/2-consumption-electrical-heating-d-0` represents the 0th element in the D array with D meaning daily, W weekly and M monthly. The daily values are for 2 hours, which means element 0 represents the day before today at 0:00, whereas d-1 would be the day before today at 2:00. D-12 is the value of today at 0:00. For weekly the first 7 days represent last month, and for monthly the first 12 month represent last year.
+
 ## Final steps in GUI
 At the bottom you can find some inputs related to the MQTT settings. The device name must match the homie convention which is lower-case [a-z0-9]+.
 
 The last step of the GUI is to write the config file which is done by the `save file` button. The default name is `PollingSettings.json`
 
-If you don't like GUIs you can run ` java -jar daikin-0.0.1.jar -w 192.168.188.200` which will scan the given IP address and write a `PollingSettings.json` file that you can edit.
+If you don't like GUIs you can run ` java -jar daikin-0.0.2.jar -w 192.168.188.200` which will scan the given IP address and write a `PollingSettings.json` file that you can edit.
 
 ## Running the polling service
-Now that you have a proper `PollingSettings.json` you can finally launch ` java -jar daikin-0.0.1.jar -p` which will start the polling and update the data in the homie convention.
+Now that you have a proper `PollingSettings.json` you can finally launch ` java -jar daikin-0.0.2.jar -p` which will start the polling and update the data in the homie convention.
+
+# Enabling setting values
+**WARNING** Setting wrong values may break your device, I take **NO Responsibilty** for any damages that occurred. In order to set a value, open the json file and lookup the property and chance `"settable": false,` to `true`. Setting the value is done according to the homie convention.
+
+# Advanced things
+## Support for a influx line protocol topic
+It is possible to also get an influx line protocol valued topic. This can be directly inserted into an influx DB. There are three properties to be defined in the root node of the json file:
+
+* influxTopic: the topic where the influx data will be posted to
+* influxTable: the measurement where the data should be inserted
+* influxQFN: the value of the tag qfn
