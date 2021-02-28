@@ -8,10 +8,12 @@ import java.math.BigDecimal;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -400,6 +402,10 @@ public class Daikin implements PropertySetCallback {
     config.setDeviceName(settings.getHomieDeviceName());
     config.setBrokerUsername(settings.getHomieUser());
     config.setBrokerPassword(settings.getHomiePassword());
+    if (settings.getInfluxTopic() != null) {
+      logger.warn("Logging influx to Topic:" + settings.getInfluxTopic());
+    }
+
     Homie homie = new Homie(config, "de.karstenbecker.daikin", "0.0.1");
     Map<String, Node> nodes = new HashMap<>();
     url = getBaseURL(settings);
@@ -428,7 +434,7 @@ public class Daikin implements PropertySetCallback {
           try {
             if (!webSocketClient.connect(url))
               logger.error("Could not connect to daikin adpater:" + url);
-            prop.postProcessor = Consumption.doSetup(node, property.getID(), webSocketClient.sendQuery(prop.getPath()+"/la"));
+            prop.postProcessor = Consumption.doSetup(node, property.getID(), webSocketClient.sendQuery(prop.getPath() + "/la"));
             webSocketClient.disconnect();
           } catch (Exception e) {
             logger.error("Failed to collect data for setup", e);
@@ -469,8 +475,13 @@ public class Daikin implements PropertySetCallback {
             continue;
           }
           String influxString = pollItems(settings, nextMinutely, nextHourly, nextBiHourly, nextDaily, currentRun);
-          if (influxString != null && !influxString.isBlank() && settings.getInfluxTopic()!=null)
-            homie.publish(settings.getInfluxTopic(), new MqttMessage(influxString.getBytes()));
+          if (influxString != null && !influxString.isBlank() && settings.getInfluxTopic() != null) {
+            logger.trace("Posting influx message:"+influxString);
+            boolean publish = homie.publish(settings.getInfluxTopic(), new MqttMessage(influxString.getBytes(StandardCharsets.UTF_8)));
+            if (!publish) {
+              logger.warn("Failed to post influx message:"+influxString);
+            }
+          }
           webSocketClient.disconnect();
         }
         if (currentRun > nextMinutely) {
@@ -529,18 +540,22 @@ public class Daikin implements PropertySetCallback {
       if (currentRun > compareAgainst) {
         if (prop.getPollInterval() != PollingInterval.MINUTELY)
           logger.warn("Checking " + prop);
-        String stringValue = pollItem(prop);
-        if (stringValue != null) {
-          items.add(prop.getId() + "=" + stringValue);
+        Map<String, String> values = pollItem(prop);
+        if (values != null) {
+          for (Entry<String, String> e : values.entrySet()) {
+            if (e.getValue()!=null)
+              items.add(e.getKey() + "=" + e.getValue());
+          }
         }
       }
     }
     if (items.length() == 0)
       return null;
-    return settings.getInfluxTable()+",qfn=" + settings.getInfluxQFN() + " " + items.toString() + " " + (System.currentTimeMillis() * 1000000L);
+    return settings.getInfluxTable() + ",qfn=" + settings.getInfluxQFN() + " " + items.toString() + " " + (System.currentTimeMillis() * 1000000L);
   }
 
-  private String pollItem(DaikinProperty property) {
+  private Map<String, String> pollItem(DaikinProperty property) {
+    Map<String, String> result = new LinkedHashMap<>();
     Optional<JsonObject> objQueryResult = webSocketClient.doQuery(property.getPath() + "/la");
     if (!objQueryResult.isPresent()) {
       logger.warn("failed to read " + property.getPath());
@@ -554,7 +569,7 @@ public class Daikin implements PropertySetCallback {
       if (property.getPostProcessing() != null) {
         switch (property.getPostProcessing()) {
         case CONSUMPTION:
-          ((Consumption) property.postProcessor).updateValues(value, false);
+          result.putAll(((Consumption) property.postProcessor).updateValues(value, false));
           break;
         case NONE:
           break;
@@ -564,23 +579,27 @@ public class Daikin implements PropertySetCallback {
       case FLOAT:
         BigDecimal bd = new BigDecimal(value);
         property.homieProperty.send(bd.doubleValue());
-        return bd.toPlainString();
+        result.put(property.getId(), bd.toPlainString());
+        return result;
       case BOOLEAN:
         boolean boolValue = "0".contentEquals(value);
         if (boolValue)
           property.homieProperty.send(Boolean.FALSE);
         else
           property.homieProperty.send(Boolean.TRUE);
-        return boolValue ? "1" : "0";
+        result.put(property.getId(), boolValue ? "1" : "0");
+        return result;
       case INTEGER:
         long parseLong = new BigDecimal(value).longValue();
         property.homieProperty.send(parseLong);
-        return Long.toString(parseLong);
+        result.put(property.getId(), Long.toString(parseLong));
+        return result;
       case ENUM:
       case STRING:
         if (!value.equals(""))
           property.homieProperty.send(value);
-        return escapeAndQuote(value);
+        result.put(property.getId(), escapeAndQuote(value));
+        return result;
       default:
         break;
 

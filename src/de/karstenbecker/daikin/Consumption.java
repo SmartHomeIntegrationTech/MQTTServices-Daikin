@@ -1,5 +1,7 @@
 package de.karstenbecker.daikin;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
@@ -39,7 +41,8 @@ public class Consumption {
         "{\"Electrical\":{\"Heating\":{\"D\":[0,0,0,0,0,0,0,2,0,3,10,0,0,0,0,0,null,null,null,null,null,null,null,null],\"W\":[2,3,2,4,2,2,2,1,3,1,2,3,15,0],\"M\":[90,54,56,54,45,58,51,63,47,44,55,74,81,94,null,null,null,null,null,null,null,null,null,null]}}}"));
   }
 
-  public void updateValues(String json, boolean setupProperty) {
+  public Map<String, String> updateValues(String json, boolean setupProperty) {
+    Map<String, String> result=new LinkedHashMap<>();
     JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
     Set<Entry<String, JsonElement>> rootSet = obj.entrySet();
     for (Entry<String, JsonElement> root : rootSet) {
@@ -60,23 +63,29 @@ public class Consumption {
               property.setRetained(false);
             } else {
               if (value.isJsonNull()) {
+                result.put(nodeName, null);
                 property.send((Long) null);
               } else {
                 lastNonNull = value.getAsNumber();
+                result.put(nodeName, lastNonNull.toString());
                 property.send(lastNonNull.longValue());
               }
             }
           }
-          Property property = node.getProperty(name + "-last");
+          String nodeName = name + "-last";
+          Property property = node.getProperty(nodeName);
           if (setupProperty) {
             property.setDataType(DataType.INTEGER);
             property.setUnit("kWh");
             property.setRetained(false);
           } else {
+            result.put(nodeName, lastNonNull.toString());
             property.send(lastNonNull.longValue());
           }
         }
       }
     }
+    return result;
   }
+  
 }
