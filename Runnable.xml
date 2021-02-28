@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project MQTTServices-Daikin">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <!--define folder properties-->
+    <property name="dir.buildfile" value="."/>
+    <property name="dir.workspace" value="${dir.buildfile}/.."/>
+    <property name="dir.jarfile" value="${dir.buildfile}"/>
+    <target name="create_run_jar">
+        <jar destfile="${dir.jarfile}/daikin-0.0.2.jar" filesetmanifest="mergewithoutmain">
+            <manifest>
+                <attribute name="Main-Class" value="de.karstenbecker.daikin.Daikin"/>
+                <attribute name="Class-Path" value="."/>
+            </manifest>
+            <fileset dir="${dir.jarfile}/target/classes"/>
+            <fileset dir="/Users/karstenbecker/eclipse-workspace/homie-java/bin/main"/>
+            <zipfileset excludes="META-INF/*.SF" src="${dir.jarfile}/org.eclipse.jdt.annotation_2.2.400.v20191120-1313.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/paho/org.eclipse.paho.client.mqttv3/1.2.5/org.eclipse.paho.client.mqttv3-1.2.5.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/io/gsonfire/gson-fire/1.8.5/gson-fire-1.8.5.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/com/google/code/gson/gson/2.8.6/gson-2.8.6.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/jetty/websocket/websocket-client/9.4.27.v20200227/websocket-client-9.4.27.v20200227.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/jetty/jetty-client/9.4.27.v20200227/jetty-client-9.4.27.v20200227.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/jetty/jetty-http/9.4.27.v20200227/jetty-http-9.4.27.v20200227.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/jetty/jetty-xml/9.4.27.v20200227/jetty-xml-9.4.27.v20200227.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/jetty/jetty-util/9.4.27.v20200227/jetty-util-9.4.27.v20200227.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/jetty/jetty-io/9.4.27.v20200227/jetty-io-9.4.27.v20200227.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/jetty/websocket/websocket-common/9.4.27.v20200227/websocket-common-9.4.27.v20200227.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/eclipse/jetty/websocket/websocket-api/9.4.27.v20200227/websocket-api-9.4.27.v20200227.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/slf4j/slf4j-simple/1.7.30/slf4j-simple-1.7.30.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/org/slf4j/slf4j-api/1.7.30/slf4j-api-1.7.30.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/dnsjava/dnsjava/2.1.6/dnsjava-2.1.6.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/net/posick/mdnsjava/2.2.0/mdnsjava-2.2.0.jar"/>
+            <zipfileset excludes="META-INF/*.SF" src="/Users/karstenbecker/.m2/repository/commons-cli/commons-cli/1.4/commons-cli-1.4.jar"/>
+        </jar>
+    </target>
+</project>

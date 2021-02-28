@@ -11,6 +11,10 @@ import com.google.gson.ExclusionStrategy;
 import com.google.gson.FieldAttributes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import io.gsonfire.gson.EnumDefaultValueTypeAdapterFactory;
+
+import de.karstenbecker.daikin.DaikinProperty.PollingInterval;
+import de.karstenbecker.daikin.DaikinProperty.PostProcessing;
 
 public class DaikinPollingSettings {
 	private String homieServer = "tcp://127.0.0.1:1883";
@@ -87,7 +91,10 @@ public class DaikinPollingSettings {
 	}
 
 	public String toJSON(boolean includeValues) {
-		GsonBuilder gson = new GsonBuilder().setPrettyPrinting();
+		GsonBuilder gson = new GsonBuilder().setPrettyPrinting()
+		    .registerTypeAdapterFactory(new EnumDefaultValueTypeAdapterFactory<>(PollingInterval.class, PollingInterval.NEVER))
+		    .registerTypeAdapterFactory(new EnumDefaultValueTypeAdapterFactory<>(PostProcessing.class, PostProcessing.NONE))
+		    ;
 		if (!includeValues) {
 			gson.setExclusionStrategies(new ExclusionStrategy() {
 

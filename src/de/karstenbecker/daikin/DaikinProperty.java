@@ -3,152 +3,170 @@ package de.karstenbecker.daikin;
 import java.util.Objects;
 
 import io.github.dschanoeh.homie_java.Property;
-import io.github.dschanoeh.homie_java.Property.DataType;
 
 public class DaikinProperty implements Comparable<DaikinProperty> {
 
-    public static enum PollingInterval {
-        NEVER, ONCE, DAILY, BI_HOURLY, HOURLY, MINUTELY;
-    }
-    
-    public static enum PostProcessing {
-      NONE, CONSUMPTION
-    }
+  public static enum PollingInterval {
+    NEVER, ONCE, DAILY, BI_HOURLY, HOURLY, MINUTELY;
+  }
 
-    private final String path;
-    private final String groupName;
-    private String name;
-    private String value = "";
-    private Boolean settable = false;
-    private Boolean retained = true;
-    private String unit = "";
-    private String format = "";
-    private PollingInterval pollInterval = PollingInterval.HOURLY;
-    private DataType dataType = DataType.STRING;
-    private PostProcessing postProcessing = PostProcessing.NONE;
-    public transient Property homieProperty;
-    public transient Object postProcessor;
+  public static enum PostProcessing {
+    NONE, CONSUMPTION
+  }
 
-    public DaikinProperty(String path, String groupName) {
-        this.path = path;
-        this.name = groupName + path.substring(path.indexOf('/'));
-        this.groupName = groupName;
-    }
+  public static enum DataType {
+    INTEGER, FLOAT, BOOLEAN, STRING, ENUM;
 
-    public String getPath() {
-        return path;
+    io.github.dschanoeh.homie_java.Property.DataType toHomieDataType() {
+      switch (this) {
+      case BOOLEAN:
+        return io.github.dschanoeh.homie_java.Property.DataType.BOOLEAN;
+      case ENUM:
+        return io.github.dschanoeh.homie_java.Property.DataType.ENUM;
+      case FLOAT:
+        return io.github.dschanoeh.homie_java.Property.DataType.FLOAT;
+      case INTEGER:
+        return io.github.dschanoeh.homie_java.Property.DataType.INTEGER;
+      case STRING:
+        return io.github.dschanoeh.homie_java.Property.DataType.STRING;
+      }
+      return null;
     }
+  }
 
-    public String getGroupName() {
-        return groupName;
-    }
+  private final String path;
+  private final String groupName;
+  private String name;
+  private String value = "";
+  private Boolean settable = false;
+  private Boolean retained = true;
+  private String unit = "";
+  private String format = "";
+  private PollingInterval pollInterval = PollingInterval.HOURLY;
+  private DataType dataType = DataType.STRING;
+  private PostProcessing postProcessing = PostProcessing.NONE;
+  public transient Property homieProperty;
+  public transient Object postProcessor;
 
-    public String getName() {
-        return name;
-    }
+  public DaikinProperty(String path, String groupName) {
+    this.path = path;
+    this.name = groupName + path.substring(path.indexOf('/'));
+    this.groupName = groupName;
+  }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+  public String getPath() {
+    return path;
+  }
 
-    public String getId() {
-        return path.replaceAll(Daikin.ITEM_SEP, "-").toLowerCase();
-    }
+  public String getGroupName() {
+    return groupName;
+  }
 
-    public String getValue() {
-        return value;
-    }
+  public String getName() {
+    return name;
+  }
 
-    public void setValue(String value) {
-        this.value = value;
-    }
+  public void setName(String name) {
+    this.name = name;
+  }
 
-    public Boolean getSettable() {
-        return settable;
-    }
+  public String getId() {
+    return path.replaceAll(Daikin.ITEM_SEP, "-").toLowerCase();
+  }
 
-    public void setSettable(Boolean settable) {
-        this.settable = settable;
-    }
+  public String getValue() {
+    return value;
+  }
 
-    public Boolean getRetained() {
-        return retained;
-    }
+  public void setValue(String value) {
+    this.value = value;
+  }
 
-    public void setRetained(Boolean retained) {
-        this.retained = retained;
-    }
+  public Boolean getSettable() {
+    return settable;
+  }
 
-    public String getUnit() {
-        return unit;
-    }
+  public void setSettable(Boolean settable) {
+    this.settable = settable;
+  }
 
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
+  public Boolean getRetained() {
+    return retained;
+  }
 
-    public String getFormat() {
-        return format;
-    }
+  public void setRetained(Boolean retained) {
+    this.retained = retained;
+  }
 
-    public void setFormat(String format) {
-        this.format = format;
-    }
+  public String getUnit() {
+    return unit;
+  }
 
-    public PollingInterval getPollInterval() {
-        return pollInterval;
-    }
+  public void setUnit(String unit) {
+    this.unit = unit;
+  }
 
-    public void setPollInterval(PollingInterval pollInterval) {
-        this.pollInterval = pollInterval;
-    }
+  public String getFormat() {
+    return format;
+  }
 
-    public DataType getDataType() {
-        return dataType;
-    }
+  public void setFormat(String format) {
+    this.format = format;
+  }
 
-    public void setDataType(DataType dataType) {
-        this.dataType = dataType;
-    }
+  public PollingInterval getPollInterval() {
+    return pollInterval;
+  }
 
-    @Override
-    public int hashCode() {
-        final int prime = 31;
-        int result = 1;
-        result = prime * result + Objects.hash(path);
-        return result;
-    }
+  public void setPollInterval(PollingInterval pollInterval) {
+    this.pollInterval = pollInterval;
+  }
 
-    @Override
-    public boolean equals(Object obj) {
-        if (this == obj)
-            return true;
-        if (obj == null)
-            return false;
-        if (getClass() != obj.getClass())
-            return false;
-        DaikinProperty other = (DaikinProperty) obj;
-        return Objects.equals(path, other.path);
-    }
+  public DataType getDataType() {
+    return dataType;
+  }
 
-    @Override
-    public int compareTo(DaikinProperty o) {
-        return path.compareTo(o.path);
-    }
+  public void setDataType(DataType dataType) {
+    this.dataType = dataType;
+  }
 
-    @Override
-    public String toString() {
-        return String.format(
-                "DaikinProperty [path=%s, name=%s, id=%s, value=%s, settable=%s, retained=%s, unit=%s, format=%s, pollInterval=%s, dataType=%s]",
-                path, name, getId(), value, settable, retained, unit, format, pollInterval, dataType);
-    }
+  @Override
+  public int hashCode() {
+    final int prime = 31;
+    int result = 1;
+    result = prime * result + Objects.hash(path);
+    return result;
+  }
 
-    public PostProcessing getPostProcessing() {
-      return postProcessing;
-    }
+  @Override
+  public boolean equals(Object obj) {
+    if (this == obj)
+      return true;
+    if (obj == null)
+      return false;
+    if (getClass() != obj.getClass())
+      return false;
+    DaikinProperty other = (DaikinProperty) obj;
+    return Objects.equals(path, other.path);
+  }
 
-    public void setPostProcessing(PostProcessing postProcessing) {
-      this.postProcessing = postProcessing;
-    }
+  @Override
+  public int compareTo(DaikinProperty o) {
+    return path.compareTo(o.path);
+  }
+
+  @Override
+  public String toString() {
+    return String.format("DaikinProperty [path=%s, name=%s, id=%s, value=%s, settable=%s, retained=%s, unit=%s, format=%s, pollInterval=%s, dataType=%s]", path, name, getId(), value, settable,
+        retained, unit, format, pollInterval, dataType);
+  }
+
+  public PostProcessing getPostProcessing() {
+    return postProcessing;
+  }
+
+  public void setPostProcessing(PostProcessing postProcessing) {
+    this.postProcessing = postProcessing;
+  }
 
 }

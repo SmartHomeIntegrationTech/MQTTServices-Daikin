@@ -38,6 +38,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import de.karstenbecker.daikin.DaikinProperty.DataType;
 import de.karstenbecker.daikin.DaikinProperty.PollingInterval;
 import de.karstenbecker.daikin.DaikinProperty.PostProcessing;
 import de.karstenbecker.daikin.ui.SetupUI;
@@ -46,7 +47,6 @@ import io.github.dschanoeh.homie_java.Homie;
 import io.github.dschanoeh.homie_java.Homie.State;
 import io.github.dschanoeh.homie_java.Node;
 import io.github.dschanoeh.homie_java.Property;
-import io.github.dschanoeh.homie_java.Property.DataType;
 import net.posick.mDNS.Lookup;
 
 public class Daikin {
@@ -417,7 +417,7 @@ public class Daikin {
                 nodes.put(groupName, node);
             }
             Property property = node.getProperty(prop.getId());
-            property.setDataType(prop.getDataType());
+            property.setDataType(prop.getDataType().toHomieDataType());
             property.setFormat(prop.getFormat());
             property.setName(prop.getName());
             property.setRetained(prop.getRetained());

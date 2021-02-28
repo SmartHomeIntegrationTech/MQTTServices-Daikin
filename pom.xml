@@ -21,7 +21,13 @@
 		<dependency>
 			<groupId>org.eclipse.paho</groupId>
 			<artifactId>org.eclipse.paho.client.mqttv3</artifactId>
-			<version>1.2.2</version>
+			<version>1.2.5</version>
+		</dependency>
+
+		<dependency>
+			<groupId>io.gsonfire</groupId>
+			<artifactId>gson-fire</artifactId>
+			<version>1.8.5</version>
 		</dependency>
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
