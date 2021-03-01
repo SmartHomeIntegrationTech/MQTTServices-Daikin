@@ -52,7 +52,28 @@ If you don't like GUIs you can run ` java -jar daikin-0.0.2.jar -w 192.168.188.2
 Now that you have a proper `PollingSettings.json` you can finally launch ` java -jar daikin-0.0.2.jar -p` which will start the polling and update the data in the homie convention.
 
 # Enabling setting values
-**WARNING** Setting wrong values may break your device, I take **NO Responsibilty** for any damages that occurred. In order to set a value, open the json file and lookup the property and chance `"settable": false,` to `true`. Setting the value is done according to the homie convention.
+**WARNING** Setting wrong values may break your device, I take **NO Responsibilty** for any damages that occurred. In order to set a value, open the json file and lookup the property and change `"settable": false,` to `true`. Setting the value is done according to the homie convention. 
+
+## PowerFul mode example 
+First modify the settings json file by changing `settable` to `true`. The relevant part should now look like this:
+```json
+...
+    {
+      "path": "2/Operation/Powerful",
+      "groupName": "DomesticHotWaterTank",
+      "name": "DomesticHotWaterTank/Operation/Powerful",
+      "settable": true,
+      "retained": true,
+      "unit": "",
+      "format": "",
+      "pollInterval": "MINUTELY",
+      "dataType": "INTEGER",
+      "postProcessing": "NONE"
+    },
+...
+```
+
+After settable was changed to `true` in the settings file you can check `homie/daikin-heatingunit/domestichotwatertank/2-operation-powerful/$settable` to ensure that the setting was correctly enabled. If you now want to enable the PowerFul mode, you have to write a `1` to the topic `homie/daikin-heatingunit/domestichotwatertank/2-operation-powerful/set`. Writing it will simply trigger the PowerFul mode, and once the temperature has been reached, it will disable itself. However the set-topic will remain `1`, but it is possible to simply write a `1` again.
 
 # Advanced things
 ## Support for a influx line protocol topic
