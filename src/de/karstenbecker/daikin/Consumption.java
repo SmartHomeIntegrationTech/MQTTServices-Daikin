@@ -42,7 +42,7 @@ public class Consumption {
   }
 
   public Map<String, String> updateValues(String json, boolean setupProperty) {
-    Map<String, String> result=new LinkedHashMap<>();
+    Map<String, String> result = new LinkedHashMap<>();
     JsonObject obj = JsonParser.parseString(json).getAsJsonObject();
     Set<Entry<String, JsonElement>> rootSet = obj.entrySet();
     for (Entry<String, JsonElement> root : rootSet) {
@@ -50,17 +50,22 @@ public class Consumption {
       for (Entry<String, JsonElement> mid : midSet) {
         Set<Entry<String, JsonElement>> dataSet = mid.getValue().getAsJsonObject().entrySet();
         for (Entry<String, JsonElement> data : dataSet) {
-          String name = baseName + "-" + root.getKey().toLowerCase().strip() + "-" + mid.getKey().toLowerCase().strip() + "-" + data.getKey().toLowerCase().strip();
+          String energyName = root.getKey().strip();
+          String purpose = mid.getKey().strip();
+          String field = data.getKey().strip();
+          String name = baseName + "-" + energyName.toLowerCase() + "-" + purpose.toLowerCase() + "-" + field.toLowerCase();
           JsonArray values = data.getValue().getAsJsonArray();
           Number lastNonNull = null;
-          for (int i = 0; i < values.size(); i++) {
+          int size = values.size();
+          for (int i = 0; i < size; i++) {
             JsonElement value = values.get(i);
             String nodeName = name + "-" + i;
             Property property = node.getProperty(nodeName);
             if (setupProperty) {
               property.setDataType(DataType.INTEGER);
               property.setUnit("kWh");
-              property.setRetained(false);
+              property.setName(energyName + "/" + purpose + "/" + field + "[" + i + "] " + timeIndicator(field, i, size));
+              property.setRetained(true);
             } else {
               if (value.isJsonNull()) {
                 result.put(nodeName, null);
@@ -77,7 +82,8 @@ public class Consumption {
           if (setupProperty) {
             property.setDataType(DataType.INTEGER);
             property.setUnit("kWh");
-            property.setRetained(false);
+            property.setRetained(true);
+            property.setName(energyName + "/" + purpose + "/" + field+" last non-null value");
           } else {
             result.put(nodeName, lastNonNull.toString());
             property.send(lastNonNull.longValue());
@@ -87,5 +93,34 @@ public class Consumption {
     }
     return result;
   }
-  
+
+  private static final String DAYS[]= {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+  private static final String MONTH[]= {"Jan", "Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"};
+  private String timeIndicator(String field, int i, int size) {
+    switch (field) {
+    case "D":
+      if (size == 24) {
+        if (i>=12) {
+          return String.format("Today %02d:00-%02d:00", (i-12)*2, (i-12+1)*2);
+        }
+        return String.format("Yesterday %02d:00-%02d:00", i*2, (i+1)*2);
+      }
+    case "W":
+      if (size==14) {
+        if (i>=7) {
+          return "this week "+DAYS[i-7];
+        }
+        return "last week "+DAYS[i];
+      }
+    case "M":
+      if (size==24) {
+        if (i>=12) {
+          return "this year "+MONTH[i-12];
+        }
+        return "last year "+MONTH[i];
+      }
+    }
+    return "";
+  }
+
 }
