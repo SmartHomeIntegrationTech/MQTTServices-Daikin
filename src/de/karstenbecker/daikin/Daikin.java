@@ -629,7 +629,8 @@ public class Daikin implements PropertySetCallback {
 
   @Override
   public void performSet(Property property, String value) {
-    String item = idToProp.get(property.getID()).getPath();
+    DaikinProperty daikinProperty = idToProp.get(property.getID());
+    String item = daikinProperty.getPath();
     try {
       synchronized (webSocketClient) {
         if (!webSocketClient.connect(url)) {
@@ -637,6 +638,7 @@ public class Daikin implements PropertySetCallback {
           return;
         }
         Optional<String> response = webSocketClient.setValue(item, value);
+        pollItem(daikinProperty);
         webSocketClient.disconnect();
         if (!response.isPresent())
           return;
@@ -656,7 +658,6 @@ public class Daikin implements PropertySetCallback {
           return;
         }
       }
-
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
     }
