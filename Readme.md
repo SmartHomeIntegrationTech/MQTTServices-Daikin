@@ -2,9 +2,9 @@ This software allows to discover a Daikin Adapter BRP069A62 in the network and r
 
 ## Launching it
 
-You can launch it with `java -jar daikin-0.0.2.jar` which will give you a few options.
+You can launch it with `java -jar daikin-0.0.4.jar` which will give you a few options.
 
-If you don't know your IP address you can run `java -jar daikin-0.0.2.jar -d` and it will discover existing Daikin Adapters through MDNS, or you can just run `java -jar daikin-0.0.2.jar -g` to start a Setup GUI. If you launch the GUI for the first time, it will open a dialog, where you can enter the IP address of the adapter, or hit the discover button and get the first adapter found.
+If you don't know your IP address you can run `java -jar daikin-0.0.4.jar -d` and it will discover existing Daikin Adapters through MDNS, or you can just run `java -jar daikin-0.0.4.jar -g` to start a Setup GUI. If you launch the GUI for the first time, it will open a dialog, where you can enter the IP address of the adapter, or hit the discover button and get the first adapter found.
 
 Once the proper UI opens you can hit the discover button which will try to identify all possible endpoints that can be read from this adapter. For this it will use the UnitProfile endpoint, as well as a text file with some other endpoints that I found in the app.
 *ADVANCED: You can also try your own endpoints with the `-e` option*
@@ -46,10 +46,27 @@ At the bottom you can find some inputs related to the MQTT settings. The device 
 
 The last step of the GUI is to write the config file which is done by the `save file` button. The default name is `PollingSettings.json`
 
-If you don't like GUIs you can run ` java -jar daikin-0.0.2.jar -w 192.168.188.200` which will scan the given IP address and write a `PollingSettings.json` file that you can edit.
+If you don't like GUIs you can run ` java -jar daikin-0.0.4.jar -w 192.168.188.200` which will scan the given IP address and write a `PollingSettings.json` file that you can edit.
 
 ## Running the polling service
-Now that you have a proper `PollingSettings.json` you can finally launch ` java -jar daikin-0.0.2.jar -p` which will start the polling and update the data in the homie convention.
+Now that you have a proper `PollingSettings.json` you can finally launch ` java -jar daikin-0.0.4.jar -p` which will start the polling and update the data in the homie convention. It is recommended to run this as a systemd service. This may look like this:
+
+```
+[Unit]
+Description=Tool for reading the Daikin Service API
+Wants=mosquitto.service
+After=mosquitto.service
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/jvm/java-1.14.0-openjdk-amd64/bin/java -jar /etc/openhab2/scripts/daikin-0.0.2.jar -c /etc/openhab2/scripts/PollingSettings.json -p
+
+[Install]
+WantedBy=multi-user.target
+```
+
+## Integration into OpenHab
+OpenHab has the ability to discover homie convention items. For this the [MQTT Binding](https://www.openhab.org/addons/bindings/mqtt/) needs to be enabled. Please ensure that the broker thing that is added has QoS 1. Once the broker has been added new things should be discovered automatically and can be added.
 
 # Enabling setting values
 **WARNING** Setting wrong values may break your device, I take **NO Responsibilty** for any damages that occurred. In order to set a value, open the json file and lookup the property and change `"settable": false,` to `true`. Setting the value is done according to the homie convention. 
