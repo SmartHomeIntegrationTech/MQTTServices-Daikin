@@ -54,6 +54,25 @@ Now that you have a proper `PollingSettings.json` you can finally launch ` java 
 # Enabling setting values
 **WARNING** Setting wrong values may break your device, I take **NO Responsibilty** for any damages that occurred. In order to set a value, open the json file and lookup the property and change `"settable": false,` to `true`. Setting the value is done according to the homie convention. 
 
+## Setting json values
+It is also possible to update json values, like a heating plan. In order to set any string, it is important to put `"` at the beginning and the end of the string. It is also important to escape all `"` with `\"`. So an update to the plan that should result in:
+
+```json
+{
+  "data": [
+    "$NULL|1|0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,200;,;,;,;,",
+    "$NULL|1|,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,",
+    "$NULL|1|,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,"
+  ]
+}
+```
+
+Needs to be escaped to:
+
+```json
+"{\"data\":[\"$NULL|1|0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,210;,;,;,;,;0700,230;2100,200;,;,;,;,\",\"$NULL|1|,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,\",\"$NULL|1|,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,;,\"]}"
+```
+
 ## PowerFul mode example 
 First modify the settings json file by changing `settable` to `true`. The relevant part should now look like this:
 ```json

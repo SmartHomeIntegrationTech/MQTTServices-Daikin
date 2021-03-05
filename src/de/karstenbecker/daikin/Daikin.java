@@ -416,6 +416,7 @@ public class Daikin implements PropertySetCallback {
       Node node = nodes.get(groupName);
       if (node == null) {
         node = homie.createNode(groupName.toLowerCase(), groupName);
+        node.setName(groupName);
         nodes.put(groupName, node);
       }
       Property property = node.getProperty(prop.getId());
