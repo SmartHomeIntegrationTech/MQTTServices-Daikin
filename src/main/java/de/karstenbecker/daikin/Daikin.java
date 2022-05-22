@@ -33,8 +33,6 @@ import org.apache.commons.cli.Options;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.xbill.DNS.DClass;
-import org.xbill.DNS.Record;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -51,7 +49,6 @@ import io.github.dschanoeh.homie_java.Homie.State;
 import io.github.dschanoeh.homie_java.Node;
 import io.github.dschanoeh.homie_java.Property;
 import io.github.dschanoeh.homie_java.PropertySetCallback;
-import net.posick.mDNS.Lookup;
 
 public class Daikin implements PropertySetCallback {
   private static final long MINUTELY_MS = 60000L;
@@ -88,24 +85,10 @@ public class Daikin implements PropertySetCallback {
   private WebsocketHelper webSocketClient;
   public static final String ITEM_SEP = "/";
   private URI url;
-  private Map<String, DaikinProperty> idToProp = new HashMap<>();
+  private final Map<String, DaikinProperty> idToProp = new HashMap<>();
 
   public Daikin() throws Exception {
     webSocketClient = new WebsocketHelper();
-  }
-
-  public InetSocketAddress[] discoverDevice() throws Exception {
-    List<InetSocketAddress> addresses = new ArrayList<InetSocketAddress>();
-    try (Lookup lookup = new Lookup("_daikin._tcp.local.", org.xbill.DNS.Type.ANY, DClass.IN)) {
-      Record[] records = lookup.lookupRecords();
-      for (Record record : records) {
-        if (record.getType() == org.xbill.DNS.Type.A) {
-          InetSocketAddress addr = new InetSocketAddress(record.rdataToString(), 80);
-          addresses.add(addr);
-        }
-      }
-    }
-    return (InetSocketAddress[]) addresses.toArray(new InetSocketAddress[addresses.size()]);
   }
 
   public DaikinInformation getInformation(InetSocketAddress adr) throws IOException, InterruptedException {
@@ -116,7 +99,7 @@ public class Daikin implements PropertySetCallback {
       return null;
     }
     Optional<String> reply = webSocketClient.sendDiscovery();
-    if (!reply.isPresent())
+    if (reply.isEmpty())
       return null;
     JsonElement root = JsonParser.parseString(reply.get());
     JsonObject description = root.getAsJsonObject().get("m2m:rsp").getAsJsonObject().get("pc").getAsJsonObject().get("m2m:dvi").getAsJsonObject();
@@ -133,6 +116,7 @@ public class Daikin implements PropertySetCallback {
 
   public Set<DaikinProperty> discoverProperties(InetSocketAddress adr, List<String> endpoints) {
     URI url = getBaseURL(adr);
+    logger.debug("Connecting to "+url);
     try {
       if (!webSocketClient.connect(url))
         return null;
@@ -141,7 +125,7 @@ public class Daikin implements PropertySetCallback {
       Set<DaikinProperty> properties = new TreeSet<>();
       do {
         Optional<JsonObject> obj = webSocketClient.doQuery(Integer.toString(i));
-        if (!obj.isPresent())
+        if (obj.isEmpty())
           return null;
         code = obj.get().get("rsc").getAsInt();
         if (code == 2000) {
@@ -153,10 +137,10 @@ public class Daikin implements PropertySetCallback {
             logger.debug("Using " + groupName + " as node name.");
           }
           Optional<JsonObject> unitProfileOpt = webSocketClient.doQuery(i + "/UnitProfile/la");
-          if (!unitProfileOpt.isPresent())
+          if (unitProfileOpt.isEmpty())
             return null;
           Optional<JsonElement> sub = JsonHelper.getJsonPath(unitProfileOpt.get(), "pc", "m2m:cin", "con");
-          if (!sub.isPresent())
+          if (sub.isEmpty())
             return null;
           String valObj = sub.get().getAsString();
           logger.debug("Profile:" + valObj);
@@ -178,7 +162,7 @@ public class Daikin implements PropertySetCallback {
 
   private void checkEndpoint(String item, Set<DaikinProperty> properties, String groupName) {
     Optional<JsonObject> objQueryResult = webSocketClient.doQuery(item + "/la");
-    if (!objQueryResult.isPresent()) // There should be enough debug output in doQuery
+    if (objQueryResult.isEmpty()) // There should be enough debug output in doQuery
       return;
     int code = objQueryResult.get().get("rsc").getAsInt();
     logger.debug("Obj:" + item + " " + code + " " + objQueryResult);
@@ -207,7 +191,7 @@ public class Daikin implements PropertySetCallback {
     }
     try {
       Optional<JsonObject> objQueryResult = webSocketClient.doQuery(item + "/la");
-      if (!objQueryResult.isPresent()) // There should be enough debug output in doQuery
+      if (objQueryResult.isEmpty()) // There should be enough debug output in doQuery
         return;
       int code = objQueryResult.get().get("rsc").getAsInt();
       logger.trace("Obj:" + item + " " + code + " " + objQueryResult);
@@ -241,7 +225,6 @@ public class Daikin implements PropertySetCallback {
         JsonElement ele = obj.get(key);
         buildChannels(ele, item + ITEM_SEP + key, properties, primitives, groupName);
       }
-      return;
     }
   }
 
@@ -337,7 +320,6 @@ public class Daikin implements PropertySetCallback {
     final Options options = new Options();
     options.addOption(new Option("g", "gui", false, "Show the setup UI"));
     options.addOption(new Option("c", "config", true, "The config file to use. PollingSettings.json is the default"));
-    options.addOption(new Option("d", "discover", false, "Discovers all daikin adpater"));
     options.addOption(new Option("e", "endpoint", true, "An additional list of endpoints to check. Built-in otherPotentialEndpoints.txt is the default"));
     options.addOption(new Option("w", "writeSettings", true, "Run endpoint checking without GUI and write config file. Specify IP as argument"));
     options.addOption(new Option("p", "polling", false, "Run polling from settings"));
@@ -350,14 +332,6 @@ public class Daikin implements PropertySetCallback {
     URL endPointsURL = Daikin.class.getResource("otherPotentialEndpoints.txt");
     if (cmd.hasOption('e')) {
       endPointsURL = new File(cmd.getOptionValue('e')).toURI().toURL();
-    }
-    if (cmd.hasOption('d')) {
-      InetSocketAddress[] addresses = daikin.discoverDevice();
-      for (InetSocketAddress address : addresses) {
-        DaikinInformation information = daikin.getInformation(address);
-        System.out.println(address + " " + information);
-      }
-      System.exit(0);
     }
     if (cmd.hasOption('w')) {
       List<String> endPoints = readEndPoints(endPointsURL);

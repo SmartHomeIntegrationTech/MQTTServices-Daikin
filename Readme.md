@@ -4,7 +4,7 @@ This software allows to discover a Daikin Adapter BRP069A62 in the network and r
 
 You can launch it with `java -jar daikin-0.0.4.jar` which will give you a few options.
 
-If you don't know your IP address you can run `java -jar daikin-0.0.4.jar -d` and it will discover existing Daikin Adapters through MDNS, or you can just run `java -jar daikin-0.0.4.jar -g` to start a Setup GUI. If you launch the GUI for the first time, it will open a dialog, where you can enter the IP address of the adapter, or hit the discover button and get the first adapter found.
+If you don't know your IP address you can run `
 
 Once the proper UI opens you can hit the discover button which will try to identify all possible endpoints that can be read from this adapter. For this it will use the UnitProfile endpoint, as well as a text file with some other endpoints that I found in the app.
 *ADVANCED: You can also try your own endpoints with the `-e` option*
