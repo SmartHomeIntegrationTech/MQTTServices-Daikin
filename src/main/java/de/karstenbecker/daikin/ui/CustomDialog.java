@@ -41,13 +41,13 @@ import java.awt.event.*;
 /* 1.4 example used by DialogDemo.java. */
 class CustomDialog extends JDialog implements ActionListener, PropertyChangeListener {
 	private String typedText = null;
-	private JTextField textField;
-	private SetupUI dd;
+	private final JTextField textField;
+	private final SetupUI dd;
 
-	private JOptionPane optionPane;
+	private final JOptionPane optionPane;
 
-	private String btnString1 = "Open";
-	private String btnString2 = "Discover";
+	private final String btnString1 = "Open";
+	private final String btnString2 = "Discover";
 
 	/**
 	 * Returns null if the typed string was invalid; otherwise, returns the string
@@ -89,7 +89,7 @@ class CustomDialog extends JDialog implements ActionListener, PropertyChangeList
 				 * Instead of directly closing the window, we're going to change the
 				 * JOptionPane's value property.
 				 */
-				optionPane.setValue(new Integer(JOptionPane.CLOSED_OPTION));
+				optionPane.setValue(JOptionPane.CLOSED_OPTION);
 			}
 		});
 

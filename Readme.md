@@ -2,9 +2,9 @@ This software allows to discover a Daikin Adapter BRP069A62 in the network and r
 
 ## Launching it
 
-You can launch it with `java -jar daikin-0.0.4.jar` which will give you a few options.
+You can launch it with `java -jar daikin-0.0.5.jar` which will give you a few options.
 
-If you don't know your IP address you can run `
+If you don't know your IP address you can run `java -jar daikin-0.0.5.jar -d`.
 
 Once the proper UI opens you can hit the discover button which will try to identify all possible endpoints that can be read from this adapter. For this it will use the UnitProfile endpoint, as well as a text file with some other endpoints that I found in the app.
 *ADVANCED: You can also try your own endpoints with the `-e` option*
@@ -46,10 +46,10 @@ At the bottom you can find some inputs related to the MQTT settings. The device 
 
 The last step of the GUI is to write the config file which is done by the `save file` button. The default name is `PollingSettings.json`
 
-If you don't like GUIs you can run ` java -jar daikin-0.0.4.jar -w 192.168.188.200` which will scan the given IP address and write a `PollingSettings.json` file that you can edit.
+If you don't like GUIs you can run ` java -jar daikin-0.0.5.jar -w 192.168.188.200` which will scan the given IP address and write a `PollingSettings.json` file that you can edit.
 
 ## Running the polling service
-Now that you have a proper `PollingSettings.json` you can finally launch ` java -jar daikin-0.0.4.jar -p` which will start the polling and update the data in the homie convention. It is recommended to run this as a systemd service. This may look like this:
+Now that you have a proper `PollingSettings.json` you can finally launch ` java -jar daikin-0.0.5.jar -p` which will start the polling and update the data in the homie convention. It is recommended to run this as a systemd service. This may look like this:
 
 ```
 [Unit]

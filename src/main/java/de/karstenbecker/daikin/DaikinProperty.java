@@ -6,15 +6,15 @@ import io.github.dschanoeh.homie_java.Property;
 
 public class DaikinProperty implements Comparable<DaikinProperty> {
 
-  public static enum PollingInterval {
+  public enum PollingInterval {
     NEVER, ONCE, DAILY, BI_HOURLY, HOURLY, MINUTELY;
   }
 
-  public static enum PostProcessing {
+  public enum PostProcessing {
     NONE, CONSUMPTION
   }
 
-  public static enum DataType {
+  public enum DataType {
     INTEGER, FLOAT, BOOLEAN, STRING, ENUM;
 
     io.github.dschanoeh.homie_java.Property.DataType toHomieDataType() {

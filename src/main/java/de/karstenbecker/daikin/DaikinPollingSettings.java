@@ -120,8 +120,7 @@ public class DaikinPollingSettings {
 	public static DaikinPollingSettings fromFile(File file) throws IOException {
 		Gson gson = new GsonBuilder().create();
 		String json = Files.readString(file.toPath());
-		DaikinPollingSettings settings = gson.fromJson(json, DaikinPollingSettings.class);
-		return settings;
+		return gson.fromJson(json, DaikinPollingSettings.class);
 	}
 
   public String getInfluxTopic() {

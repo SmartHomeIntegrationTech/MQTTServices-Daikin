@@ -5,23 +5,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigDecimal;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.URL;
+import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Optional;
-import java.util.Random;
-import java.util.Set;
-import java.util.StringJoiner;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.commons.cli.CommandLine;
@@ -49,6 +37,10 @@ import io.github.dschanoeh.homie_java.Homie.State;
 import io.github.dschanoeh.homie_java.Node;
 import io.github.dschanoeh.homie_java.Property;
 import io.github.dschanoeh.homie_java.PropertySetCallback;
+
+import javax.jmdns.JmDNS;
+import javax.jmdns.ServiceEvent;
+import javax.jmdns.ServiceListener;
 
 public class Daikin implements PropertySetCallback {
   private static final long MINUTELY_MS = 60000L;
@@ -82,7 +74,7 @@ public class Daikin implements PropertySetCallback {
 
   private final Logger logger = LoggerFactory.getLogger(Daikin.class);
 
-  private WebsocketHelper webSocketClient;
+  private final WebsocketHelper webSocketClient;
   public static final String ITEM_SEP = "/";
   private URI url;
   private final Map<String, DaikinProperty> idToProp = new HashMap<>();
@@ -323,11 +315,22 @@ public class Daikin implements PropertySetCallback {
     options.addOption(new Option("e", "endpoint", true, "An additional list of endpoints to check. Built-in otherPotentialEndpoints.txt is the default"));
     options.addOption(new Option("w", "writeSettings", true, "Run endpoint checking without GUI and write config file. Specify IP as argument"));
     options.addOption(new Option("p", "polling", false, "Run polling from settings"));
+    options.addOption(new Option("d", "discover", false, "Discovers all daikin adpater"));
     CommandLineParser parser = new DefaultParser();
     CommandLine cmd = parser.parse(options, args);
     File configFile = new File("PollingSettings.json");
     if (cmd.hasOption('c')) {
       configFile = new File(cmd.getOptionValue('c'));
+    }
+    if (cmd.hasOption('d')) {
+      var addresses = daikin.discoverDevice();
+      if (addresses.isPresent()) {
+        for (var address:addresses.get()){
+          DaikinInformation information = daikin.getInformation(address);
+          System.out.println(address + " " + information);
+        }
+      }
+      System.exit(0);
     }
     URL endPointsURL = Daikin.class.getResource("otherPotentialEndpoints.txt");
     if (cmd.hasOption('e')) {
@@ -398,7 +401,7 @@ public class Daikin implements PropertySetCallback {
       property.setFormat(prop.getFormat());
       property.setName(prop.getName());
       property.setRetained(prop.getRetained());
-      property.setUnit(property.getUnit());
+      property.setUnit(prop.getUnit());
       idToProp.put(property.getID(), prop);
       if (prop.getSettable()) {
         property.makeSettable(this);
@@ -490,6 +493,46 @@ public class Daikin implements PropertySetCallback {
     }
   }
 
+  private static class MDNSListener implements ServiceListener {
+    volatile InetSocketAddress[] result =null;
+    @Override
+    public void serviceAdded(ServiceEvent event) {
+    }
+
+    @Override
+    public void serviceRemoved(ServiceEvent event) {
+    }
+
+    @Override
+    public void serviceResolved(ServiceEvent event) {
+      InetAddress[] inetAddresses = event.getInfo().getInetAddresses();
+      int port=event.getInfo().getPort();
+      result = new InetSocketAddress[inetAddresses.length];
+      for (int i = 0; i < inetAddresses.length; i++) {
+        result[i]=new InetSocketAddress(inetAddresses[i], port);
+      }
+    }
+
+    public InetSocketAddress[] resolvedIp() throws InterruptedException{
+      for (int i=0;i<30;i++){
+        if (result==null) Thread.sleep(1000);
+        else return result;
+      }
+      return null;
+    }
+  }
+  public Optional<InetSocketAddress[]> discoverDevice(){
+      try(JmDNS jmdns = JmDNS.create(InetAddress.getLocalHost());) {
+        // Add a service listener
+        MDNSListener listener = new MDNSListener();
+        jmdns.addServiceListener("_daikin._tcp.local.", listener);
+        return Optional.ofNullable(listener.resolvedIp());
+      } catch (IOException | InterruptedException e) {
+        System.out.println(e.getMessage());
+      }
+    return Optional.empty();
+  }
+
   private String pollItems(DaikinPollingSettings settings, long nextMinutely, long nextHourly, long nextBiHourly, long nextDaily, long currentRun) {
     StringJoiner items = new StringJoiner(",");
     for (DaikinProperty prop : settings.getProperties()) {
@@ -532,7 +575,7 @@ public class Daikin implements PropertySetCallback {
   private Map<String, String> pollItem(DaikinProperty property) {
     Map<String, String> result = new LinkedHashMap<>();
     Optional<JsonObject> objQueryResult = webSocketClient.doQuery(property.getPath() + "/la");
-    if (!objQueryResult.isPresent()) {
+    if (objQueryResult.isEmpty()) {
       logger.warn("failed to read " + property.getPath());
       return null;
     }
@@ -615,7 +658,7 @@ public class Daikin implements PropertySetCallback {
         Optional<String> response = webSocketClient.setValue(item, value);
         pollItem(daikinProperty);
         webSocketClient.disconnect();
-        if (!response.isPresent())
+        if (response.isEmpty())
           return;
         JsonElement ele = JsonParser.parseString(response.get());
         if (!ele.isJsonObject()) {

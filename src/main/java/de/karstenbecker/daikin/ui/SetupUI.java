@@ -7,12 +7,10 @@ import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import javax.swing.BorderFactory;
 import javax.swing.InputVerifier;
@@ -30,12 +28,6 @@ import javax.swing.border.Border;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
-import com.google.gson.ExclusionStrategy;
-import com.google.gson.FieldAttributes;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
-
 import de.karstenbecker.daikin.Daikin;
 import de.karstenbecker.daikin.DaikinPollingSettings;
 import de.karstenbecker.daikin.DaikinProperty;
@@ -45,23 +37,23 @@ import de.karstenbecker.daikin.DaikinProperty.PostProcessing;
 public class SetupUI extends JPanel {
     private static final int GAP = 8;
     private static JFrame frame;
-    private boolean DEBUG = false;
-    private BeanPropertyModel<DaikinProperty> model;
-    private DaikinPollingSettings settings;
+    private final boolean DEBUG = false;
+    private final BeanPropertyModel<DaikinProperty> model;
+    private final DaikinPollingSettings settings;
     private JTextField homieURLText;
     private JTextField homieUserText;
     private JTextField homiePasswordText;
     private JTextField homieDeviceNameText;
     private JTextField daikinIpAddressText;
-    private Daikin daikin;
+    private final Daikin daikin;
     private JButton discoverBtn;
-    private List<String> endPoints;
+    private final List<String> endPoints;
 
     public SetupUI(DaikinPollingSettings settings, List<String> endPoints) throws Exception {
         super(createLayout());
         daikin = new Daikin();
         this.settings = settings;
-        this.endPoints=endPoints;
+        this.endPoints = endPoints;
         model = new BeanPropertyModel<DaikinProperty>(DaikinProperty.class, settings.getProperties(), "pollInterval",
                 "name", "unit", "format", "dataType", "value", "postProcessing");
         final JTable table = new JTable(model);
@@ -158,10 +150,12 @@ public class SetupUI extends JPanel {
             new Thread(() -> {
                 try {
                     runDiscovery();
-                    discoverBtn.setEnabled(true);
-                    daikinIpAddressText.setEditable(true);
                 } catch (Exception e1) {
                     e1.printStackTrace();
+
+                } finally {
+                    discoverBtn.setEnabled(true);
+                    daikinIpAddressText.setEditable(true);
                 }
             }).start();
         } catch (Exception e1) {
@@ -172,7 +166,7 @@ public class SetupUI extends JPanel {
     private void runDiscovery() throws Exception, IOException {
         Set<DaikinProperty> discoverProperties = daikin
                 .discoverProperties(new InetSocketAddress(settings.getDaikinIP(), settings.getDaikinPort()), endPoints);
-        model.data = new ArrayList<DaikinProperty>(discoverProperties);
+        model.data = new ArrayList<>(discoverProperties);
         model.fireTableDataChanged();
     }
 
@@ -257,7 +251,8 @@ public class SetupUI extends JPanel {
     /**
      * Create the GUI and show it. For thread safety, this method should be invoked
      * from the event-dispatching thread.
-     * @param endPoints 
+     *
+     * @param endPoints
      */
     private static void createAndShowGUI(DaikinPollingSettings settings, List<String> endPoints) {
         // Create and set up the window.
@@ -303,10 +298,11 @@ public class SetupUI extends JPanel {
     }
 
     public String discoverIP() throws Exception {
-        InetSocketAddress[] discoverDevice = daikin.discoverDevice();
-        if (discoverDevice.length > 0)
-            return discoverDevice[0].getHostString();
-        return null;
+        Optional<InetSocketAddress[]> discoverDevice = daikin.discoverDevice();
+        if (discoverDevice.isPresent()){
+            return discoverDevice.get()[0].getHostString();
+        }
+        return "";
     }
 
 }
